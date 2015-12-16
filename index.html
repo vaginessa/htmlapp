@@ -307,6 +307,79 @@
       el.dispatchEvent(event);
     };
 
+    var removeHTMLComments = function(str) {
+      if (!str || str.length === 0) return '';
+
+      var start = str.indexOf('<!--');
+      var end = str.indexOf('-->');
+
+      if (start === -1 || end === -1) return str;
+
+      var res = str.substring(0, start);
+      str = str.substring(end + 3, str.length);
+
+      var res2 = Helpers.removeHTMLComments(str);
+      return res.concat(res2);
+    };
+
+    // Outer or inner allowing (but not returning) attributes in tag
+    var parseHTMLTag = function(tag, str, outer) {
+      if (!str || str.length === 0) return [];
+
+      // find start of beginning and end tags
+      var startStartTag = str.indexOf('<' + tag);
+      var startEndTag = str.indexOf('</' + tag + '>');
+      if (startStartTag === -1 || startEndTag === -1) return [];
+
+      // check that the tag has an end
+      var endStartTag = str.substring(startStartTag + tag.length, str.length).indexOf('>');
+      if (endStartTag === -1) return [];
+      endStartTag += startStartTag + tag.length;
+
+      var startTagLength = endStartTag - startStartTag;
+      var endTagLength = ('</' + tag + '>').length;
+
+      var res;
+      res = (outer) ? str.substring(startStartTag, startEndTag + endTagLength) :
+        str.substring(startStartTag + startTagLength + 1, startEndTag);
+
+      str = str.substring(startEndTag + endTagLength, str.length);
+
+      var res2 = Helpers.parseHTMLTag(tag, str, outer);
+      return [res].concat(res2);
+
+    };
+
+    // Outer and inner with attributes in tag including the attributes
+    // [{outer:..., inner:..., attr:...}]
+    // TODO: should refactor and combine this with parseHTMLTag
+    var parseHTMLTag2 = function(tag, str) {
+      if (!str || str.length === 0) return [];
+
+      // find start of beginning and end tags
+      var startStartTag = str.indexOf('<' + tag);
+      var startEndTag = str.indexOf('</' + tag + '>');
+      if (startStartTag === -1 || startEndTag === -1) return [];
+
+      // check that the tag has an end
+      var endStartTag = str.substring(startStartTag + tag.length, str.length).indexOf('>');
+      if (endStartTag === -1) return [];
+      endStartTag += startStartTag + tag.length;
+
+      var startTagLength = endStartTag - startStartTag;
+      var endTagLength = ('</' + tag + '>').length;
+
+      var res = {};
+      res.outer = str.substring(startStartTag, startEndTag + endTagLength);
+      res.inner = str.substring(startStartTag + startTagLength + 1, startEndTag);
+      res.attr = str.substring(startStartTag + ('<' + tag).length, endStartTag);
+
+      str = str.substring(startEndTag + endTagLength, str.length);
+
+      var res2 = Helpers.parseHTMLTag2(tag, str);
+      return [res].concat(res2);
+
+    };
     // main
     // ====
 
