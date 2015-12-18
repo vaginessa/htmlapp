@@ -17,8 +17,9 @@
   ],
   "dependencies": {
     "ydn.db": "~1.3.3",
-    "bluebird": "~3.0.2",
+    "bluebird": "*",
     "lodash": "~3.10.1",
-    "blueimp-md5": "~1.1.1"
+    "blueimp-md5": "~1.1.1",
+    "remote": "*"
   }
 }
