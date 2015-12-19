@@ -1,0 +1,15 @@
+{
+  "name": "htmlapp",
+  "devDependencies": {
+    "chai": "*",
+    "docco": "*",
+    "jscs": "*"
+  },
+  "scripts": {
+    "clean": "rm -rf docco; rm -rf build",
+    "clean-all": "rm -rf docco; rm -rf www; rm -rf node_modules; rm -rf bower_components; rm -rf platforms; rm -rf plugins",
+    "docco": "./node_modules/.bin/docco -o docco ./*.js ./test/*.js",
+    "style": "./node_modules/.bin/jscs *.js ./*.js  ./test/*.js",
+    "init": "bower install"
+  }
+}

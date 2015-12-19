@@ -7,7 +7,11 @@
   var T = {};
 
   // imports
+  // ======
   R = window['remote'];
+
+  // load some html into IndexedDB
+  // =============================
 
   var testSchema = {
     stores: [{
@@ -31,6 +35,8 @@
 
 
   // export (for debugging purposes)
+  // ===============================
+
   window['test'] = T;
 
 }());
