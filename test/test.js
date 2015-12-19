@@ -4,6 +4,8 @@
   var log = console.log.bind(console);
   var debug = console.debug.bind(console);
 
+  debug('Initializing test...');
+
   var T = {};
 
   // imports
@@ -23,11 +25,23 @@
   T.db = new ydn.db.Storage(testDbName, testSchema);
 
   T.db.clear('apps')
-  .then(function(app) {
+  .then(function() {
     return R.get('./about.html')
   })
-  .then(function(app) {
-    return T.db.put('apps', {val: app}, 'about.html')
+  .then(function(html) {
+    return T.db.put('apps', {val: html}, 'about.html')
+  })
+  .then(function() {
+    return R.get('./about.js')
+  })
+  .then(function(js) {
+    return T.db.put('apps', {val: js}, 'about.js')
+  })
+  .then(function() {
+    return R.get('./about.css')
+  })
+  .then(function(css) {
+    return T.db.put('apps', {val: css}, 'about.css')
   })
   .then(function(res){
     return T.db.get('apps', 'about.html').then(console.log.bind(console));

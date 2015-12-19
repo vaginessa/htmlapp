@@ -4,20 +4,6 @@ about.html
 
 150408, Jonas Colmsjö
 
-Use Like this:
-
-```
-var aboutDef = {
-src: './src/varp/about.html',
-id: 'about',
-permissions: 'allow-scripts allow-forms',
-shortcut: 'ctrl+a'
-};
-
-window.gna.loadVarp(aboutDef);
-window.gna.showVarp('about');
-```
-
 -->
 <html>
 
@@ -36,16 +22,6 @@ window.gna.showVarp('about');
       <li>termlib (www.masswerk.at/termlib/)</li>
     </ul>
   </p>
-
-  <script>
-    // init is automatically called when the varp is loaded
-    init = function() {
-      console.log('about.html:init');
-    };
-
-    // When running outside gna
-    document.addEventListener("DOMContentLoaded", init);
-  </script>
 </body>
 
 </html>

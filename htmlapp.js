@@ -5,6 +5,8 @@
   var debug = console.debug.bind(console);
   var error = console.error.bind(console);
 
+  debug('Initializing...');
+
   // imports
   // =======
 
