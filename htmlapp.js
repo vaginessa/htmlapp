@@ -13,20 +13,59 @@
   // Logic
   // =======
 
-  // Use YDN-DB to access IndexedDB
+  // One event handler is used. This makes it easy to see how all events are
+  // handeled. Also, handle events that are send between varps (iframes)
+  var handler = function(evt) {
+    var self = App.getInstance();
 
-  var storeName = 'apps';
-  var schema = {
-    stores: [{
-      name: storeName,
-      autoIncrement: false
-    } ]
+    // Mouse events
+    if (evt instanceof MouseEvent) {
+
+      // skip the btn part of the id
+      var id = evt.target.id.substring(3, evt.target.id.length)
+      debug('handler:MouseEvent:' + id);
+
+      // dispatch show event to the relevant varp
+      if (Object.keys(self.varps_).indexOf(id) !== -1) {
+        self.show(id);
+        debug('handler:MouseEvent:dispatch:' + id);
+      }
+
+    }
   };
-  var db = new ydn.db.Storage('htmlapps', schema);
-
 
   // constructor
-  var App = function () {};
+  var App = function (dbName, storeName) {
+
+    // primitive singleton
+    window.htmlappInstance_ = this;
+
+    if (!dbName || !storeName)
+      throw "ERROR: database name and store name must be specified!";
+
+    this.dbName = dbName;
+    this.storeName = storeName;
+    this.varps_ = {};
+
+    // Use YDN-DB to access IndexedDB - not using inline key
+    var schema = {
+      stores: [{
+        name: storeName,
+        autoIncrement: false
+      } ]
+    };
+
+    this.db = new ydn.db.Storage(dbName, schema);
+
+    // events that we listens to in the main frame
+    document.addEventListener('click', handler);
+  };
+
+  // primitive singleton implementation
+  // TODO: create proper Singleton
+  App.getInstance = function() {
+    return window.htmlappInstance_;
+  }
 
   App.prototype.loadStyle = function (cssData, document, clearExisting) {
     var self = this;
@@ -89,7 +128,7 @@
     document.body.appendChild(varps);
   };
 
-  App.prototype.loadVarp = function (varpDef) {
+  App.prototype.load = function (varpDef) {
     var self = this;
 
     debug('load varp:' + varpDef.id +
@@ -98,7 +137,7 @@
     // check mandatory input
     if (!varpDef || !varpDef.id) {
 
-      throw 'varp id must me specified. See varphelp';
+      throw 'ERROR: id must me specified';
     }
 
     if (!varpDef.permissions) {
@@ -116,17 +155,17 @@
     //  }
     //```
     var createIFrame = function (input) {
-      debug('createIFrame ' + input.id);
+      debug('createIFrame ' + input.id, input.data);
 
       // Get rid of HTML comments
-      input.data = Helpers.removeHTMLComments(input.data);
+      input.data = removeHTMLComments(input.data);
 
-      var title = Helpers.parseHTMLTag('title', input.data, false);
-      var scripts = Helpers.parseHTMLTag2('script', input.data);
-      var styles = Helpers.parseHTMLTag('style', input.data, false);
+      var title = parseHTMLTag('title', input.data, false);
+      var scripts = parseHTMLTag2('script', input.data);
+      var styles = parseHTMLTag('style', input.data, false);
 
       // This will include the whole body including script tags
-      var bodyObj = Helpers.parseHTMLTag2('body', input.data, false)[0];
+      var bodyObj = parseHTMLTag2('body', input.data, false)[0];
       var body = [bodyObj.inner];
       var eventsToRegister = null;
 
@@ -136,7 +175,7 @@
       // data-gna-send='["event1", ..., "eventN"]'
       if (bodyObj.attr) {
         var bodyAttr = bodyObj.attr.trim();
-        eventsToRegister = Helpers.jsonParse(bodyAttr.substr(15, bodyAttr.length - 15 - 1));
+        eventsToRegister = jsonParse(bodyAttr.substr(15, bodyAttr.length - 15 - 1));
         debug('updateIframe ' + input.id + ' send=' + eventsToRegister);
       }
 
@@ -182,10 +221,13 @@
             document.getElementById(iframe.id).sandbox);
         }
 
+        // Load JS from IndexedDb
         // This is a promise-based alternative, but the login screen isn't
         // initialized for some reason
         //      self.fetchRemoteScripts2(scripts).then(function(scripts) {
-        self.varpBucket_.get(varpDef.id + '.js').then(function (scripts) {
+        self.db.get(self.storeName, varpDef.id + '.js').then(function (scripts) {
+          if(!scripts) return;
+
           debug('updateIframe with id ' + input.id +
             ': ' + scripts.length + ' remote scripts fetched.')
 
@@ -219,7 +261,7 @@
       return iframe;
     };
 
-    var addMenu = function (val) {
+    var addMenu_ = function (val) {
       var el = document.createElement('input');
       el.type = 'button';
       el.value = val;
@@ -228,37 +270,39 @@
       document.getElementById('menu').appendChild(el);
     };
 
-    var load = function (html) {
+    var load_ = function (data) {
 
       var input = {
         id: varpDef.id,
         target: document.getElementById('varps'),
         permissions: varpDef.permissions,
-        data: html
+        data: data.val
       };
 
       varpDef.element = createIFrame(input);
-      addMenu(varpDef.id);
+      addMenu_(varpDef.id);
+      self.varps_[varpDef.id] = varpDef;
 
     };
 
     // end of helpers
     // --------------
 
-    return db.get(storeName, varpDef.id+'.html').then(load).catch(function (e) {
-      debug('loadVarp:' + varpDef.id + ':' + e);
-      return e.toString();
-    });
+    try {
+      self.db.get(self.storeName, varpDef.id+'.html').then(load_);
+    } catch (e){
+      debug('load:' + varpDef.id + ':' + e);
+    }
   };
 
-  App.prototype.unloadVarp = function (id) {
+  App.prototype.unload = function (id) {
     document.getElementById('menu').removeChild(document.getElementById('btn' + id))
   }
 
-  App.prototype.showVarp = function (iframeId) {
+  App.prototype.show = function (iframeId) {
     var self = this;
 
-    debug('showVarp:' + iframeId);
+    debug('show:' + iframeId);
 
     var vs = document.getElementById('varps');
     var v = document.getElementById(iframeId);
@@ -309,7 +353,7 @@
     var res = str.substring(0, start);
     str = str.substring(end + 3, str.length);
 
-    var res2 = Helpers.removeHTMLComments(str);
+    var res2 = removeHTMLComments(str);
     return res.concat(res2);
   };
 
@@ -336,7 +380,7 @@
 
     str = str.substring(startEndTag + endTagLength, str.length);
 
-    var res2 = Helpers.parseHTMLTag(tag, str, outer);
+    var res2 = parseHTMLTag(tag, str, outer);
     return [res].concat(res2);
 
   };
@@ -367,7 +411,7 @@
 
     str = str.substring(startEndTag + endTagLength, str.length);
 
-    var res2 = Helpers.parseHTMLTag2(tag, str);
+    var res2 = parseHTMLTag2(tag, str);
     return [res].concat(res2);
 
   };

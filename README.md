@@ -4,8 +4,8 @@ Usage:
 
 ```
 var App = window['htmlapp'];
-var app = new App();
+var app = new App('htmlapps','apps');
 app.createMainPage();
 
-app.loadVarp({id: 'about'});
+app.load({id: 'about'});
 ```
