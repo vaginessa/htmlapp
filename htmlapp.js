@@ -1,9 +1,29 @@
 ;
 (function () {
   var log = console.log.bind(console);
+  var info = console.info.bind(console);
   var debug = console.debug.bind(console);
   var error = console.error.bind(console);
-  var info = console.info.bind(console);
+
+  // imports
+  // =======
+
+  R = window['remote'];
+
+  // Logic
+  // =======
+
+  // Use YDN-DB to access IndexedDB
+
+  var storeName = 'apps';
+  var schema = {
+    stores: [{
+      name: storeName,
+      autoIncrement: false
+    } ]
+  };
+  var db = new ydn.db.Storage('htmlapps', schema);
+
 
   // constructor
   var App = function () {};
@@ -208,29 +228,16 @@
       document.getElementById('menu').appendChild(el);
     };
 
-    var load = function (res) {
+    var load = function (html) {
 
       var input = {
         id: varpDef.id,
         target: document.getElementById('varps'),
         permissions: varpDef.permissions,
-        data: res
+        data: html
       };
 
-      var iframe = createIFrame(input);
-
-      varpDef.element = iframe;
-      self.varps_[varpDef.id] = varpDef
-
-      // create shortcut
-      if (varpDef.shortcut) {
-        Mousetrap.bind(varpDef.shortcut, function () {
-          self.showVarp(varpDef.id);
-        }.bind(self));
-      }
-
-      varpDef.state = App.LOADED;
-
+      varpDef.element = createIFrame(input);
       addMenu(varpDef.id);
 
     };
@@ -238,7 +245,7 @@
     // end of helpers
     // --------------
 
-    return self.varpBucket_.get(varpDef.id).then(load).catch(function (e) {
+    return db.get(storeName, varpDef.id+'.html').then(load).catch(function (e) {
       debug('loadVarp:' + varpDef.id + ':' + e);
       return e.toString();
     });

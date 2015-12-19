@@ -9,18 +9,13 @@
   // imports
   R = window['remote'];
 
-  var store1 = 'apps';
-  var email = 'joe@example.com';
-
   var testSchema = {
     stores: [{
-      name: store1,
+      name: 'apps',
       autoIncrement: false
     } ]
   };
-
   var testDbName = 'htmlapps';
-
   T.db = new ydn.db.Storage(testDbName, testSchema);
 
   T.db.clear('apps')
