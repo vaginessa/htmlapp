@@ -35,27 +35,27 @@
   };
 
   // constructor
-  var App = function (dbName, storeName) {
+  var App = function (options) {
 
     // primitive singleton
     window.htmlappInstance_ = this;
 
-    if (!dbName || !storeName)
+    if (!options.dbName || !options.storeName)
       throw "ERROR: database name and store name must be specified!";
 
-    this.dbName = dbName;
-    this.storeName = storeName;
+    this.dbName = options.dbName;
+    this.storeName = options.storeName;
     this.varps_ = {};
 
     // Use YDN-DB to access IndexedDB - not using inline key
     var schema = {
       stores: [{
-        name: storeName,
+        name: options.storeName,
         autoIncrement: false
       } ]
     };
 
-    this.db = new ydn.db.Storage(dbName, schema);
+    this.db = new ydn.db.Storage(this.dbName, schema);
 
     // events that we listens to in the main frame
     document.addEventListener('click', handler);
@@ -99,18 +99,15 @@
   App.prototype.createMainPage = function () {
     var self = this;
 
-    document.head.title = 'htmlapp - main page';
+    document.head.title = (options.title) ? options.title : '';
 
     var css =
       'html,' +
       'body {' +
       '  height: 100%' +
       '}' +
-      '#menu {' +
-      '  height: 10%' +
-      '}' +
       '#varps {' +
-      '  height: 90%' +
+      '  height: 100%' +
       '}';
 
     self.loadStyle(css, document, false);
@@ -118,10 +115,6 @@
     var normalize =
       '/*! normalize.css v3.0.2 | MIT License | git.io/normalize */html{font-family:sans-serif;-ms-text-size-adjust:100%;-webkit-text-size-adjust:100%}body{margin:0}article,aside,details,figcaption,figure,footer,header,hgroup,main,menu,nav,section,summary{display:block}audio,canvas,progress,video{display:inline-block;vertical-align:baseline}audio:not([controls]){display:none;height:0}[hidden],template{display:none}a{background-color:transparent}a:active,a:hover{outline:0}abbr[title]{border-bottom:1px dotted}b,strong{font-weight:bold}dfn{font-style:italic}h1{font-size:2em;margin:.67em 0}mark{background:#ff0;color:#000}small{font-size:80%}sub,sup{font-size:75%;line-height:0;position:relative;vertical-align:baseline}sup{top:-0.5em}sub{bottom:-0.25em}img{border:0}svg:not(:root){overflow:hidden}figure{margin:1em 40px}hr{-moz-box-sizing:content-box;box-sizing:content-box;height:0}pre{overflow:auto}code,kbd,pre,samp{font-family:monospace,monospace;font-size:1em}button,input,optgroup,select,textarea{color:inherit;font:inherit;margin:0}button{overflow:visible}button,select{text-transform:none}button,html input[type="button"],input[type="reset"],input[type="submit"]{-webkit-appearance:button;cursor:pointer}button[disabled],html input[disabled]{cursor:default}button::-moz-focus-inner,input::-moz-focus-inner{border:0;padding:0}input{line-height:normal}input[type="checkbox"],input[type="radio"]{box-sizing:border-box;padding:0}input[type="number"]::-webkit-inner-spin-button,input[type="number"]::-webkit-outer-spin-button{height:auto}input[type="search"]{-webkit-appearance:textfield;-moz-box-sizing:content-box;-webkit-box-sizing:content-box;box-sizing:content-box}input[type="search"]::-webkit-search-cancel-button,input[type="search"]::-webkit-search-decoration{-webkit-appearance:none}fieldset{border:1px solid silver;margin:0 2px;padding:.35em .625em .75em}legend{border:0;padding:0}textarea{overflow:auto}optgroup{font-weight:bold}table{border-collapse:collapse;border-spacing:0}td,th{padding:0}';
     self.loadStyle(normalize, document, false);
-
-    var menu = document.createElement('div');
-    menu.id = 'menu';
-    document.body.appendChild(menu);
 
     var varps = document.createElement('div');
     varps.id = 'varps'
@@ -137,7 +130,7 @@
     // check mandatory input
     if (!varpDef || !varpDef.id) {
 
-      throw 'ERROR: id must me specified';
+      throw 'ERROR: id must me specified!';
     }
 
     if (!varpDef.permissions) {
@@ -155,17 +148,17 @@
     //  }
     //```
     var createIFrame = function (input) {
-      debug('createIFrame ' + input.id, input.data);
+      debug('createIFrame ' + input.id);
 
       // Get rid of HTML comments
-      input.data = removeHTMLComments(input.data);
+      input.html = removeHTMLComments(input.html);
 
-      var title = parseHTMLTag('title', input.data, false);
-      var scripts = parseHTMLTag2('script', input.data);
-      var styles = parseHTMLTag('style', input.data, false);
+      var title = parseHTMLTag('title', input.html, false);
+      var scripts = parseHTMLTag2('script', input.html);
+      var styles = parseHTMLTag('style', input.html, false);
 
       // This will include the whole body including script tags
-      var bodyObj = parseHTMLTag2('body', input.data, false)[0];
+      var bodyObj = parseHTMLTag2('body', input.html, false)[0];
       var body = [bodyObj.inner];
       var eventsToRegister = null;
 
@@ -222,25 +215,22 @@
         }
 
         // Load JS from IndexedDb
-        // This is a promise-based alternative, but the login screen isn't
-        // initialized for some reason
-        //      self.fetchRemoteScripts2(scripts).then(function(scripts) {
         self.db.get(self.storeName, varpDef.id + '.js').then(function (scripts) {
-          if(!scripts) return;
+          if (scripts) {
+            debug('updateIframe with id ' + input.id +
+              ': ' + scripts.length + ' remote scripts fetched.')
 
-          debug('updateIframe with id ' + input.id +
-            ': ' + scripts.length + ' remote scripts fetched.')
+            // remove the scripts from the body
+            var tmpScripts = iframeDoc.getElementsByTagName('script');
+            while (tmpScripts.length > 0) {
+              iframeDoc.body.removeChild(tmpScripts[0]);
+            }
 
-          // remove the scripts from the body
-          var tmpScripts = iframeDoc.getElementsByTagName('script');
-          while (tmpScripts.length > 0) {
-            iframeDoc.body.removeChild(tmpScripts[0]);
-          }
-
-          // Add the scripts to the head
-          for (var i = 0; i < scripts.length; i++) {
-            self.loadScript(scripts[i], input.id + '_script' + i,
-              iframeDoc.head);
+            // Add the scripts to the head
+            for (var i = 0; i < scripts.length; i++) {
+              self.loadScript(scripts[i], input.id + '_script' + i,
+                iframeDoc.head);
+            }
           }
 
           // run the init function if it exists
@@ -248,6 +238,8 @@
             debug('Initializing frame.')
             iframe.contentWindow.init();
           }
+
+          if (input.show) self.show(input.id);
 
         });
 
@@ -261,26 +253,17 @@
       return iframe;
     };
 
-    var addMenu_ = function (val) {
-      var el = document.createElement('input');
-      el.type = 'button';
-      el.value = val;
-      el.id = 'btn' + val;
-
-      document.getElementById('menu').appendChild(el);
-    };
-
     var load_ = function (data) {
 
       var input = {
         id: varpDef.id,
         target: document.getElementById('varps'),
         permissions: varpDef.permissions,
-        data: data.val
+        html: data.val,
+        show: options.show
       };
 
       varpDef.element = createIFrame(input);
-      addMenu_(varpDef.id);
       self.varps_[varpDef.id] = varpDef;
 
     };
@@ -296,8 +279,8 @@
   };
 
   App.prototype.unload = function (id) {
-    document.getElementById('menu').removeChild(document.getElementById('btn' + id))
-  }
+    document.getElementById('varps').removeChild(document.getElementById(id));
+  };
 
   App.prototype.show = function (iframeId) {
     var self = this;
