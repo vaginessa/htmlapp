@@ -5,7 +5,7 @@
   var debug = console.debug.bind(console);
   var error = console.error.bind(console);
 
-  debug('Initializing...');
+  debug('Initializing htmlapp...');
 
   // imports
   // =======
@@ -69,6 +69,14 @@
     return window.htmlappInstance_;
   }
 
+  App.prototype.get = function(filename) {
+    return this.db.get(this.storeName, filename);
+  };
+
+  App.prototype.put = function(filename, data) {
+    return this.db.put(this.storeName, data, filename);
+  };
+
   App.prototype.loadStyle = function (cssData, document, clearExisting) {
     var self = this;
     debug('loadStyle');
@@ -98,7 +106,7 @@
     }
   };
 
-  App.prototype.createMainPage = function () {
+  App.prototype.createMainPage = function (options) {
     var self = this;
 
     document.head.title = (options.title) ? options.title : '';
@@ -126,13 +134,12 @@
   App.prototype.load = function (varpDef) {
     var self = this;
 
-    debug('load varp:' + varpDef.id +
-      ' with permissions:' + varpDef.permissions);
+    debug('load app:', varpDef);
 
     // check mandatory input
     if (!varpDef || !varpDef.id) {
 
-      throw 'ERROR: id must me specified!';
+      throw 'ERROR: app id must me specified!';
     }
 
     if (!varpDef.permissions) {
@@ -257,15 +264,10 @@
 
     var load_ = function (data) {
 
-      var input = {
-        id: varpDef.id,
-        target: document.getElementById('varps'),
-        permissions: varpDef.permissions,
-        html: data.val,
-        show: options.show
-      };
+      varpDef.target = document.getElementById('varps');
+      varpDef.html = data.val;
 
-      varpDef.element = createIFrame(input);
+      varpDef.element = createIFrame(varpDef);
       self.varps_[varpDef.id] = varpDef;
 
     };
@@ -401,10 +403,90 @@
 
   };
 
+  // Command line help
+  // ----------------
+
+  App.help = function(topic){
+
+    if(!topic) {
+      info('Overview of Htmlapp');
+      info('* Htmlapp.help("setup") - show a typical example of how Htmlapp is setup.');
+      info('* Htmlapp.help("hello") - show hello world example.');
+      info('* Htmlapp.help("get") - get the contents of a file.');
+      info('* Htmlapp.help("put") - save new content into a file.');
+      info('* Htmlapp.help("objects") - short introduction to JavaSCript objects.');
+      return;
+    }
+
+    var footer = '\n\nKeep in mind that you need to perform the setup first, ' +
+            'see Htmlapp.help("setup")';
+
+
+    if (topic === 'setup') {
+      var msg = 'How to create a Htmlapp environement (copy and past ' +
+        'the text bwlow):\n\n' +
+        'var envOptions = {\n' +
+        '\tdbName: "htmlapps",\n' +
+        '\tstoreName: "apps",\n' +
+        '};\n' +
+        'var env = new Htmlapp(envOptions);\n\n' +
+        'var pageOptions = {\n' +
+        'title: "Apps developed with incredible speed!"\n' +
+        '};\n' +
+        'env.createMainPage(pageOptions);\n';
+
+      info(msg);
+    }
+
+    else if (topic === 'hello') {
+      var msg = 'This is the traditional hello world example. Copy and past ' +
+        'this text to create the app.\n\n' +
+        'var html = "<htlm><body><h1>Hello World</h1></body></html>;"' +
+        footer;
+
+      info(msg);
+    }
+
+    else if (topic === 'get') {
+      var msg = 'Get the contents of a file:\n\n' +
+        'HtmlappInstance.get(filename) - exmaple of how the contents of a ' +
+        'file is fetched and then printed:\n\n' +
+        'env.get("hello.html").then(console.log.bind(console))' +
+        footer;
+
+      info(msg);
+    }
+
+    else if (topic === 'put') {
+      var msg = '' +
+        'HtmlappInstance.put(filename, data) - ' +
+        'save new contents into a file. Only JavaScript Object can ' +
+        'be saved (see Htmlapp.help("objects")).' +
+        '\nThis is an example of how new content is saved into file:' +
+        '\n\nenv.put("hello.html", {val: "Some random content"})' +
+        footer;
+
+      info(msg);
+    }
+
+    else  {
+      info('Unknown help topic: ' + topic);
+    }
+
+  };
+
   // Export
   // ======
 
-  window['htmlapp'] = App;
+  window['Htmlapp'] = App;
 
+  debug('htmlapp is loaded.');
+
+  // Introduction message
+  // ====================
+
+  info('Welcome to htmlapp!');
+  info("Htmlapp let's you develop web and mobile apps easily. All you need is your web browser.");
+  info("Show the help with Htmlapp.help()")
 
 }());
