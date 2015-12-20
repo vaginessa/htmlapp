@@ -412,6 +412,8 @@
       info('Overview of Htmlapp');
       info('* Htmlapp.help("setup") - show a typical example of how Htmlapp is setup.');
       info('* Htmlapp.help("hello") - show hello world example.');
+      info('* Htmlapp.help("load") - load a new webapp in the browser window');
+      info('* Htmlapp.help("unload") - remove a webapp from the borwser window');
       info('* Htmlapp.help("get") - get the contents of a file.');
       info('* Htmlapp.help("put") - save new content into a file.');
       info('* Htmlapp.help("objects") - short introduction to JavaSCript objects.');
@@ -442,6 +444,35 @@
       var msg = 'This is the traditional hello world example. Copy and past ' +
         'this text to create the app.\n\n' +
         'var html = "<htlm><body><h1>Hello World</h1></body></html>;"' +
+        '\nenv.put("hello.html", {val: html})' +
+        '\nvar appOptions = {' +
+        '\n\tid: "hello",' +
+        '\n\ttitle: "My fabulous app",' +
+        '\n\tshow: true' +
+        '\n};' +
+        '\nenv.load(appOptions);' +
+        footer;
+
+      info(msg);
+    }
+
+    else if (topic === 'load') {
+      var msg = 'HtmlappInstance.load({id: <webapp id>}) - Load a webapp that has ' +
+        'been created into the browser window. ' +
+        '\nThe convention used is that the ' +
+        'webapp is the name of the html file minus the extension.' +
+        'For instance, "hello.html" has the webapp id "hello".' +
+        '\n\nenv.load({id: "hello", show: true})' +
+        footer;
+
+      info(msg);
+    }
+
+    else if (topic === 'unload') {
+      var msg = 'HtmlappInstance.unload(<webapp id>) - Remove a webapp from ' +
+        'the browser window. See htmlapp.help("load") for more information ' +
+        'about webapp ids.' +
+        '\nenv.unload("hello")' +
         footer;
 
       info(msg);
@@ -449,9 +480,10 @@
 
     else if (topic === 'get') {
       var msg = 'Get the contents of a file:\n\n' +
-        'HtmlappInstance.get(filename) - exmaple of how the contents of a ' +
+        'HtmlappInstance.get(<filename>) - exmaple of how the contents of a ' +
         'file is fetched and then printed:\n\n' +
-        'env.get("hello.html").then(console.log.bind(console))' +
+        'env.get("hello.html").then(console.log.bind(console))';
+
         footer;
 
       info(msg);

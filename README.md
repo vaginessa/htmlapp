@@ -1,9 +1,15 @@
 # Htmlapp
 
 `Htmlapp` makes it easy to develop web apps from **within** a web browser.
-The apps targets both desktop and mobile browsers.
+The apps target both desktop and mobile browsers.
 
-Open `index.html` in any browser and then open the javascript console.
+Download/clone this repo and install with: `npm install` follow by
+`npm run-script init`.
+
+Open `index.html` in any browser and then
+open the javascript console (search for 'javascript console' and your browser
+name if you don't know how to open the console).
+
 This is an example of `Htmlapp` it is used:
 
 ```
