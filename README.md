@@ -3,8 +3,8 @@
 `Htmlapp` makes it easy to develop web apps from **within** a web browser.
 The apps target both desktop and mobile browsers.
 
-Download/clone this repo and install with: `npm install` follow by
-`npm run-script init`.
+The easiest way to install `htmlapp` is with [`bower`](http://bower.io):
+`bower install htmlapp`
 
 Open `index.html` in any browser and then
 open the javascript console (search for 'javascript console' and your browser
@@ -43,3 +43,17 @@ env.unload('about');
 // show the about.html file
 env.get('about.html').then(console.log.bind(console));
 ```
+
+## Support
+
+Create a [github issue](https://github.com/gizur/htmlapp/issues/new) if you
+have questions.
+
+## Contributing
+
+Contributions are welcome, just create a fork and create a pull request.
+
+Download/clone this repo and install with: `npm install` follow by
+`npm run-script init`.
+
+`index-dev.html` is used when developing.
