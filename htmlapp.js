@@ -545,8 +545,12 @@
     } else if (topic === 'hello') {
       var msg = 'This is the traditional hello world example. Copy and past ' +
         'this text to create the app.\n\n' +
-        'var html = "<htlm><body><h1>Hello World</h1></body></html>;"' +
+        'var html = "<htlm><body><h1>Hello World</h1></body></html>"' +
+        'var js = "init = function() { console.log(\'init function\');};"' +
+        'var css = "body {background: rgba(234, 159, 195, 0.8);}"' +
         '\nenv.put("hello.html", {val: html})' +
+        '\nenv.put("hello.js", {val: js})' +
+        '\nenv.put("hello.css", {val: css})' +
         '\nvar appOptions = {' +
         '\n\tid: "hello",' +
         '\n\ttitle: "My fabulous app",' +
