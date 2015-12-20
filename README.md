@@ -35,10 +35,10 @@ var appOptions = {
 env.load(appOptions);
 // check the DOM to see that the app has been loaded
 
-// this will show the app
+// this will show the app in the browser window
 env.show('about');
 
-// This will remove the app
+// This will remove the app from the browser window
 env.unload('about');
 // check the DOM to verify that the app has been removed
 
