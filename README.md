@@ -10,7 +10,9 @@ Open `index.html` in any browser and then
 open the javascript console (search for 'javascript console' and your browser
 name if you don't know how to open the console).
 
-This is an example of `Htmlapp` it is used:
+Run `Htmlapp.help()` to show the command line help.
+
+This is an example of how `Htmlapp` it is used:
 
 ```
 var envOptions = {
