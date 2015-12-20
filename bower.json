@@ -7,7 +7,6 @@
   ],
   "description": "htmlapp",
   "license": "MIT",
-  "private": true,
   "ignore": [
     "**/.*",
     "node_modules",
