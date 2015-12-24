@@ -508,7 +508,8 @@
 
     if (!topic) {
       info('Overview of Htmlapp');
-      info('* Htmlapp.help("setup") - show a typical example of how Htmlapp is setup.');
+      info('* Htmlapp.help("config") - show a typical example of how Htmlapp is setup.');
+      info('* Htmlapp.help("config2") - customize the Htmlapp configguration.');
       info('* Htmlapp.help("hello") - show hello world example.');
       info('* Htmlapp.help("load") - load a new webapp in the browser window');
       info('* Htmlapp.help("unload") - remove a webapp from the borwser window');
@@ -521,12 +522,13 @@
     var footer = '\n\nKeep in mind that you need to perform the setup first, ' +
       'see Htmlapp.help("setup")';
 
-    if (topic === 'setup2') {
-      var msg = 'How to create a customized Htmlapp environment (copy and past ' +
+    if (topic === 'config2') {
+      var msg = 'How to create a customized Htmlapp environment, for ' +
+        'instance when publishing with hpm (copy and past ' +
         'the text below):\n\n' +
         'var envOptions = {\n' +
-        '\tdbName: "htmlapps",\n' +
-        '\tstoreName: "apps",\n' +
+        '\tdbName: <accountId>,\n' +
+        '\tstoreName: "buckets",\n' +
         '};\n' +
         'var env = new Htmlapp(envOptions);\n\n' +
         'var pageOptions = {\n' +
@@ -535,19 +537,19 @@
         'env.createMainPage(pageOptions);\n';
 
       info(msg);
-    } else if (topic === 'setup') {
+    } else if (topic === 'config') {
       var msg = 'How to create a Htmlapp environment (copy and past ' +
         'the text below):' +
         '\n\nvar env = Htmlapp.getEnv()' +
-        '\n\nRun Htmlapp.help("setup2") to see how to customize the environment';
+        '\n\nRun Htmlapp.help("config2") to see how to customize the environment';
 
       info(msg);
     } else if (topic === 'hello') {
       var msg = 'This is the traditional hello world example. Copy and past ' +
-        'this text to create the app.\n\n' +
-        'var html = "<htlm><body><h1>Hello World</h1></body></html>"' +
-        'var js = "init = function() { console.log(\'init function\');};"' +
-        'var css = "body {background: rgba(234, 159, 195, 0.8);}"' +
+        'this text to create the app.' +
+        '\nvar html = "<htlm><body><h1>Hello World</h1></body></html>"' +
+        '\nvar js = "init = function() { console.log(\'init function\');};"' +
+        '\nvar css = "body {background: rgba(234, 159, 195, 0.8);}"' +
         '\nenv.put("hello.html", {val: html})' +
         '\nenv.put("hello.js", {val: js})' +
         '\nenv.put("hello.css", {val: css})' +
