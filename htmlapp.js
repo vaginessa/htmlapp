@@ -24,35 +24,81 @@
   // constructor
   var App = function (options) {
 
-    // primitive singleton
-    window.htmlappInstance_ = this;
+    // Singleton
+    if (typeof App.instance_ === 'object') {
+      return App.instance_;
+    }
 
-    if (!options.dbName || !options.storeName)
-      throw "ERROR: database name and store name must be specified!";
+    // initialize private and class variables
+    App.instance_ = this;
+  }
 
-    this.dbName = options.dbName;
-    this.storeName = options.storeName;
-    this.varps_ = {};
+  App.prototype.init = function (options) {
+    var self = this;
 
-    // Use YDN-DB to access IndexedDB - not using inline key
-    var schema = {
-      stores: [{
-        name: options.storeName,
-        autoIncrement: false
-      }]
-    };
-
-    this.db = new ydn.db.Storage(this.dbName, schema);
+    self.varps_ = {};
 
     // events that we listens to in the main frame
     document.addEventListener('click', handler);
+
+    if (!options) options = {};
+    if (!options.pageOptions) {
+      options.pageOptions = {
+        title: "Apps developed with incredible speed!"
+      };
+    }
+    self.createMainPage(options.pageOptions);
+
+    // setup file storage using a stored configuration
+    if (!options.dbName || !options.storeName) {
+      if (!hpm)
+        throw 'ERROR: hpm not loaded. App.init with options must be used!';
+
+      return hpm.getConfig().then(function (cfg) {
+
+        self.dbName = cfg.accountId;
+        self.storeName = "work";
+
+        self.db = new ydn.db.Storage(cfg.accountId, {
+          stores: [{
+            name: self.storeName,
+            autoIncrement: false
+          }, {
+            name: "buckets",
+            autoIncrement: false
+          }]
+        });
+
+      });
+
+    }
+
+    // setup file storage with the options supplied
+    else {
+      // check mandatory atributes
+      if (!options.dbName || !options.storeName)
+        throw "ERROR: database name and store name must be specified!";
+
+      self.dbName = options.dbName;
+      self.storeName = options.storeName;
+
+      // Use YDN-DB to access IndexedDB - not using inline key
+      var schema = {
+        stores: [{
+          name: options.storeName,
+          autoIncrement: false
+        }]
+      };
+
+      self.db = new ydn.db.Storage(self.dbName, schema);
+
+      return Promise.resolve(true);
+    }
   };
 
-  // primitive singleton implementation
-  // TODO: create proper Singleton
-  App.getInstance = function () {
-    return window.htmlappInstance_;
-  }
+  App.prototype.keys = function () {
+    return this.db.keys(this.storeName);
+  };
 
   App.prototype.get = function (filename) {
     return this.db.get(this.storeName, filename);
@@ -60,29 +106,6 @@
 
   App.prototype.put = function (filename, data) {
     return this.db.put(this.storeName, data, filename);
-  };
-
-  // NOTE: KeyRange not accessible in Safari since the IndexedDbShm is used
-  App.prototype.ls = function () {
-    debug(this.db);
-    var keyRange = this.db.KeyRange.starts(0);
-    return this.db.keys(this.storeName, keyRange, 500);
-  };
-
-  // static function to setup a standard environment
-  App.getEnv = function () {
-    var envOptions = {
-      dbName: "htmlapps",
-      storeName: "apps",
-    };
-    var env = new Htmlapp(envOptions);
-
-    var pageOptions = {
-      title: "Apps developed with incredible speed!"
-    };
-    env.createMainPage(pageOptions);
-
-    return env;
   };
 
   App.prototype.loadStyle = function (cssData, document, clearExisting) {
@@ -166,7 +189,151 @@
     document.body.appendChild(varps);
   };
 
-  App.prototype.load = function (varpDef) {
+  App.prototype.load = function (appName) {
+    var self = this;
+
+    return new Promise(function (fulfill, reject) {
+
+      debug('load app:', appName);
+
+      var createIFrame = function (input) {
+        debug('createIFrame ' + input.packageDef.name);
+
+        // Get rid of HTML comments
+        input.html = removeHTMLComments(input.html);
+
+        var title = parseHTMLTag('title', input.html, false);
+        var scripts = parseHTMLTag2('script', input.html);
+        var styles = parseHTMLTag('style', input.html, false);
+
+        // This will include the whole body including script tags
+        var bodyObj = parseHTMLTag2('body', input.html, false)[0];
+        var body = [bodyObj.inner];
+        var eventsToRegister = null;
+
+        var iframe = document.createElement('iframe');
+
+        // The only attribute that is supported is:
+        // data-gna-send='["event1", ..., "eventN"]'
+        if (bodyObj.attr) {
+          var bodyAttr = bodyObj.attr.trim();
+          eventsToRegister = jsonParse(bodyAttr.substr(15, bodyAttr.length - 15 - 1));
+          debug('updateIframe ' + input.packageDef.name + ' send=' + eventsToRegister);
+        }
+
+        // This is necesseray for Firefox, the real permissions are set at the end
+        // Set the sandbox permissions
+        if (input.permissions !== '') {
+          iframe.sandbox = 'allow-same-origin allow-scripts';
+        }
+
+        iframe.id = input.packageDef.name;
+
+        // this is executed when the iframe has been loaded
+        var updateIframe = function (event) {
+          debug('updateIframe ' + input.packageDef.name + ' (load event fired)');
+
+          // This works in all browsers
+          var iframeDoc = event.target.contentDocument;
+
+          iframeDoc.body.innerHTML = (body) ? body[0] : null;
+          iframeDoc.head.title = (title) ? title[0] : null;
+
+          iframe.style.width = '100%';
+          iframe.style.height = '100%';
+          iframe.style.border = 0;
+          iframe.hidden = true;
+
+          // Register custom events and fix permissions
+          // ------------------------------------------
+
+          if (eventsToRegister) {
+            self.customEvents_.concat(eventsToRegister);
+            for (var i = 0; i < eventsToRegister.length; i++) {
+              document.addEventListener(eventsToRegister[i], handler);
+            }
+          }
+
+          // Set the sandbox permissions
+          if (input.packageDef.permissions !== '') {
+            event.target.sandbox = input.packageDef.permissions;
+            debug('permissions set to: ' +
+              document.getElementById(iframe.id).sandbox);
+          }
+
+          // Load CSS
+          // ---------
+
+          if (input.css && !input.noCSS) {
+            debug('updateIframe with id ' + input.packageDef.name + '. Load CSS.');
+            self.loadStyle(input.css, iframeDoc, false);
+          }
+
+          // Load script
+          // ------------
+
+          // Embedded scripts are not loaded, remove them the body
+          var tmpScripts = iframeDoc.getElementsByTagName('script');
+          while (tmpScripts.length > 0) {
+            iframeDoc.body.removeChild(tmpScripts[0]);
+          }
+
+          if (input.js && !input.noJS) {
+            debug('updateIframe with id ' + input.name + '. Load javascript.');
+            self.loadScript(input.js, input.name + '_script', iframeDoc.head);
+          }
+
+          // run the init function if it exists
+          if (iframe.contentWindow.init) {
+            debug('Initializing frame.')
+            iframe.contentWindow.init();
+          }
+
+          if (input.show) self.show(input.name);
+
+          // NOTE: final step, return from async operation
+          fulfill(null);
+
+        };
+
+        iframe.addEventListener("load", updateIframe, true);
+
+        // Add iframe to varps element
+        input.target.appendChild(iframe);
+
+        return iframe;
+        // end of createIFrame
+      };
+
+      try {
+        self.db.get("buckets", appName).then(function(data){
+
+          // check mandatory input
+          if (!data || !data.packageDef || !data.packageDef.name) {
+            reject('ERROR: app name must me specified!');
+          }
+
+          if (!data.packageDef.permissions) {
+            data.packageDef.permissions = 'allow-scripts allow-forms';
+          }
+
+          data.target = document.getElementById('varps');
+          data.element = createIFrame(data);
+          self.varps_[data.name] = data;
+
+        });
+
+      } catch (e) {
+        debug('load:' + appName + ':' + e);
+        reject(e);
+      }
+
+      // end of Promise
+    });
+  };
+
+  // load app from files
+  App.prototype.load2 = function (varpDef) {
     var self = this;
 
     return new Promise(function (fulfill, reject) {
@@ -497,7 +664,7 @@
     try {
       return JSON.parse(data);
     } catch (e) {
-      log.log('Error parsing JSON:' + e);
+      log('Error parsing JSON:' + e);
     }
   };
 
@@ -507,20 +674,23 @@
   App.help = function (topic) {
 
     if (!topic) {
-      info('Overview of Htmlapp');
-      info('* Htmlapp.help("config") - show a typical example of how Htmlapp is setup.');
-      info('* Htmlapp.help("config2") - customize the Htmlapp configguration.');
-      info('* Htmlapp.help("hello") - show hello world example.');
-      info('* Htmlapp.help("load") - load a new webapp in the browser window');
-      info('* Htmlapp.help("unload") - remove a webapp from the borwser window');
-      info('* Htmlapp.help("get") - get the contents of a file.');
-      info('* Htmlapp.help("put") - save new content into a file.');
-      info('* Htmlapp.help("objects") - short introduction to JavaScript objects.');
+      var msg = '' +
+        '-- Overview of Htmlapp --' +
+        '\n* Htmlapp.help("config") - show a typical example of how Htmlapp is setup.' +
+        '\n* Htmlapp.help("config2") - customize the Htmlapp configuration.' +
+        '\n* Htmlapp.help("hello") - show hello world example.' +
+        '\n* Htmlapp.help("load") - load a new webapp in the browser window' +
+        '\n* Htmlapp.help("unload") - remove a webapp from the borwser window' +
+        '\n* Htmlapp.help("get") - get the contents of a file.' +
+        '\n* Htmlapp.help("put") - save new content into a file.' +
+        '\n* Htmlapp.help("objects") - short introduction to JavaScript objects.';
+
+      info(msg);
       return;
     }
 
     var footer = '\n\nKeep in mind that you need to perform the setup first, ' +
-      'see Htmlapp.help("setup")';
+      'see Htmlapp.help("config")';
 
     if (topic === 'config2') {
       var msg = 'How to create a customized Htmlapp environment, for ' +
@@ -541,7 +711,8 @@
       var msg = 'How to create a Htmlapp environment (copy and past ' +
         'the text below):' +
         '\n\nvar env = Htmlapp.getEnv()' +
-        '\n\nRun Htmlapp.help("config2") to see how to customize the environment';
+        '\n\nRun Htmlapp.help("config2") to see how to customize the environment, ' +
+        '\n for instance when using hpm (Htmlapp Package Manager)';
 
       info(msg);
     } else if (topic === 'hello') {
