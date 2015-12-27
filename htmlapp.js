@@ -306,7 +306,7 @@
       };
 
       try {
-        self.db.get("buckets", appName).then(function(data){
+        self.db.get('buckets', 'b_' + appName).then(function(data){
 
           // check mandatory input
           if (!data || !data.packageDef || !data.packageDef.name) {
@@ -325,172 +325,6 @@
 
       } catch (e) {
         debug('load:' + appName + ':' + e);
-        reject(e);
-      }
-
-      // end of Promise
-    });
-  };
-
-  // load app from files
-  App.prototype.load2 = function (varpDef) {
-    var self = this;
-
-    return new Promise(function (fulfill, reject) {
-
-      debug('load app:', varpDef);
-
-      // check mandatory input
-      if (!varpDef || !varpDef.id) {
-
-        throw 'ERROR: app id must me specified!';
-      }
-
-      if (!varpDef.permissions) {
-        varpDef.permissions = 'allow-scripts allow-forms';
-      }
-
-      // Create an iframe element using an input object:
-      //
-      //```
-      //  {
-      //    id: '',
-      //    data: ''
-      //    target: object,
-      //    permissions: ''
-      //  }
-      //```
-      var createIFrame = function (input) {
-        debug('createIFrame ' + input.id);
-
-        // Get rid of HTML comments
-        input.html = removeHTMLComments(input.html);
-
-        var title = parseHTMLTag('title', input.html, false);
-        var scripts = parseHTMLTag2('script', input.html);
-        var styles = parseHTMLTag('style', input.html, false);
-
-        // This will include the whole body including script tags
-        var bodyObj = parseHTMLTag2('body', input.html, false)[0];
-        var body = [bodyObj.inner];
-        var eventsToRegister = null;
-
-        var iframe = document.createElement('iframe');
-
-        // The only attribute that is supported is:
-        // data-gna-send='["event1", ..., "eventN"]'
-        if (bodyObj.attr) {
-          var bodyAttr = bodyObj.attr.trim();
-          eventsToRegister = jsonParse(bodyAttr.substr(15, bodyAttr.length - 15 - 1));
-          debug('updateIframe ' + input.id + ' send=' + eventsToRegister);
-        }
-
-        // This is necesseray for Firefox, the real permissions are set at the end
-        // Set the sandbox permissions
-        if (input.permissions !== '') {
-          iframe.sandbox = 'allow-same-origin allow-scripts';
-        }
-
-        iframe.id = input.id;
-
-        // this is executed when the iframe has been loaded
-        var updateIframe = function (event) {
-          debug('updateIframe ' + input.id + ' (load event fired)');
-
-          // This works in all browsers
-          var iframeDoc = event.target.contentDocument;
-
-          iframeDoc.body.innerHTML = (body) ? body[0] : null;
-          iframeDoc.head.title = (title) ? title[0] : null;
-
-          iframe.style.width = '100%';
-          iframe.style.height = '100%';
-          iframe.style.border = 0;
-          iframe.hidden = true;
-
-          // Register custom events and fix permissions
-          // ------------------------------------------
-
-          if (eventsToRegister) {
-            self.customEvents_.concat(eventsToRegister);
-            for (var i = 0; i < eventsToRegister.length; i++) {
-              document.addEventListener(eventsToRegister[i], handler);
-            }
-          }
-
-          // Set the sandbox permissions
-          if (input.permissions !== '') {
-            event.target.sandbox = input.permissions;
-            debug('permissions set to: ' +
-              document.getElementById(iframe.id).sandbox);
-          }
-
-          // Load CSS from the database (embedded CSS is not supported)
-          // ------------------------------------------------------------------
-          self.db.get(self.storeName, varpDef.id + '.css').then(function (css) {
-
-            if (css && !input.noCSS) {
-              debug('updateIframe with id ' + input.id + '. Load CSS.');
-              self.loadStyle(css.val, iframeDoc, false);
-            }
-
-            // Load script from the database (embedded scrips are not supported)
-            // ------------------------------------------------------------------
-
-            self.db.get(self.storeName, varpDef.id + '.js').then(function (script) {
-
-              // Embedded scripts are not loaded, remove them the body
-              var tmpScripts = iframeDoc.getElementsByTagName('script');
-              while (tmpScripts.length > 0) {
-                iframeDoc.body.removeChild(tmpScripts[0]);
-              }
-
-              if (script && !input.noJS) {
-                debug('updateIframe with id ' + input.id + '. Load javascript.');
-                self.loadScript(script.val, input.id + '_script', iframeDoc.head);
-              }
-
-              // run the init function if it exists
-              if (iframe.contentWindow.init) {
-                debug('Initializing frame.')
-                iframe.contentWindow.init();
-              }
-
-              if (input.show) self.show(input.id);
-
-              // NOTE: final step, return from async operation
-              fulfill(null);
-
-            });
-          });
-
-        };
-
-        iframe.addEventListener("load", updateIframe, true);
-
-        // Add iframe to varps element
-        input.target.appendChild(iframe);
-
-        return iframe;
-      };
-
-      var load_ = function (data) {
-
-        varpDef.target = document.getElementById('varps');
-        varpDef.html = data.val;
-
-        varpDef.element = createIFrame(varpDef);
-        self.varps_[varpDef.id] = varpDef;
-
-      };
-
-      // end of helpers
-      // --------------
-
-      try {
-        self.db.get(self.storeName, varpDef.id + '.html').then(load_);
-      } catch (e) {
-        debug('load:' + varpDef.id + ':' + e);
         reject(e);
       }
 
@@ -676,29 +510,28 @@
     if (!topic) {
       var msg = '' +
         '-- Overview of Htmlapp --' +
-        '\n* Htmlapp.help("config") - show a typical example of how Htmlapp is setup.' +
-        '\n* Htmlapp.help("config2") - customize the Htmlapp configuration.' +
-        '\n* Htmlapp.help("hello") - show hello world example.' +
+        '\n* Htmlapp.help("config") - customize the Htmlapp configuration' +
+        '\n* Htmlapp.help("hello") - show hello world example' +
         '\n* Htmlapp.help("load") - load a new webapp in the browser window' +
         '\n* Htmlapp.help("unload") - remove a webapp from the borwser window' +
-        '\n* Htmlapp.help("get") - get the contents of a file.' +
-        '\n* Htmlapp.help("put") - save new content into a file.' +
-        '\n* Htmlapp.help("objects") - short introduction to JavaScript objects.';
+        '\n* Htmlapp.help("get") - get the contents of a file' +
+        '\n* Htmlapp.help("put") - save new content into a file' +
+        '\n* Htmlapp.help("misc") - Miscellaneous';
 
       info(msg);
       return;
     }
 
-    var footer = '\n\nKeep in mind that you need to perform the setup first, ' +
+    var footer = '\n\n-----\nKeep in mind that you need to perform the initial configuration, ' +
       'see Htmlapp.help("config")';
 
-    if (topic === 'config2') {
+    if (topic === 'config') {
       var msg = 'How to create a customized Htmlapp environment, for ' +
-        'instance when publishing with hpm (copy and past ' +
+        'instance when not using hpm (copy and past ' +
         'the text below):\n\n' +
         'var envOptions = {\n' +
-        '\tdbName: <accountId>,\n' +
-        '\tstoreName: "buckets",\n' +
+        '\tdbName: <database name>,\n' +
+        '\tstoreName: <object store>,\n' +
         '};\n' +
         'var env = new Htmlapp(envOptions);\n\n' +
         'var pageOptions = {\n' +
@@ -707,23 +540,15 @@
         'env.createMainPage(pageOptions);\n';
 
       info(msg);
-    } else if (topic === 'config') {
-      var msg = 'How to create a Htmlapp environment (copy and past ' +
-        'the text below):' +
-        '\n\nvar env = Htmlapp.getEnv()' +
-        '\n\nRun Htmlapp.help("config2") to see how to customize the environment, ' +
-        '\n for instance when using hpm (Htmlapp Package Manager)';
-
-      info(msg);
     } else if (topic === 'hello') {
       var msg = 'This is the traditional hello world example. Copy and past ' +
         'this text to create the app.' +
-        '\nvar html = "<htlm><body><h1>Hello World</h1></body></html>"' +
+        '\n\nvar html = "<htlm><body><h1>Hello World</h1></body></html>";' +
         '\nvar js = "init = function() { console.log(\'init function\');};"' +
         '\nvar css = "body {background: rgba(234, 159, 195, 0.8);}"' +
-        '\nenv.put("hello.html", {val: html})' +
-        '\nenv.put("hello.js", {val: js})' +
-        '\nenv.put("hello.css", {val: css})' +
+        '\nenv.put("hello.html", {val: html});' +
+        '\nenv.put("hello.js", {val: js});' +
+        '\nenv.put("hello.css", {val: css});' +
         '\nvar appOptions = {' +
         '\n\tid: "hello",' +
         '\n\ttitle: "My fabulous app",' +
@@ -734,12 +559,12 @@
 
       info(msg);
     } else if (topic === 'load') {
-      var msg = 'HtmlappInstance.load({id: <webapp id>}) - Load a webapp that has ' +
-        'been created into the browser window. ' +
-        '\nThe convention used is that the ' +
-        'webapp is the name of the html file minus the extension.' +
-        'For instance, "hello.html" has the webapp id "hello".' +
-        '\n\nenv.load({id: "hello", show: true})' +
+      var msg = 'Load a webapp from the database into the browser window.' +
+        '\nThe version to use must currently be specified explicitely:' +
+        '\n\nvar a = new Htmlapp();' +
+        '\na.init()' +
+        '\n.then(function(){return a.load("hello-0.0.1");})' +
+        '\n.then(function(){return a.show("hello");})' +
         footer;
 
       info(msg);
@@ -768,6 +593,16 @@
         '\nThis is an example of how new content is saved into file:' +
         '\n\nenv.put("hello.html", {val: "Some random content"})' +
         footer;
+
+      info(msg);
+    } else if (topic === 'misc') {
+      var msg = 'The flow function makes it possible to combine functions.' +
+        'The load exmaple can for instance be written like this:' +
+        '\n\nvar a = new Htmlapp();' +
+        '\nflow(a.init.bind(a), a.load.bind(a, "hello-0.0.1"), a.show.bind(a, "hello"))()' +
+        '\n\nThis is another example where the log function is used, shorthand for console.log.bind(console)' +
+        '\n\nflow(a.keys.bind(a), log)()'
+      footer;
 
       info(msg);
     } else {

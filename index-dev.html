@@ -17,6 +17,12 @@
   <script src="./bower_components/hpm/hpm.js"></script>
   <script src='./htmlapp.js'></script>
 
+  <script>
+    // make it possible to do: `...then(log)` instead of `...then(console.log.bind(console))`
+    var log = console.log.bind(console);
+    var debug = console.debug.bind(console);
+  </script>
+
 </body>
 
 </html>
