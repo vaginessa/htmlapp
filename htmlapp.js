@@ -511,6 +511,7 @@
       var msg = '' +
         '-- Overview of Htmlapp --' +
         '\n* Htmlapp.help("config") - customize the Htmlapp configuration' +
+        '\n* Htmlapp.help("register_account") - create an account and configure for Htmlapp' +
         '\n* Htmlapp.help("hello") - show hello world example' +
         '\n* Htmlapp.help("load") - load a new webapp in the browser window' +
         '\n* Htmlapp.help("unload") - remove a webapp from the borwser window' +
@@ -526,21 +527,24 @@
       'see Htmlapp.help("config")';
 
     if (topic === 'config') {
-      var msg = 'How to create a customized Htmlapp environment, for ' +
-        'instance when not using hpm (copy and past ' +
-        'the text below):\n\n' +
-        'var envOptions = {\n' +
-        '\tdbName: <database name>,\n' +
-        '\tstoreName: <object store>,\n' +
-        '};\n' +
-        'var env = new Htmlapp(envOptions);\n\n' +
-        'var pageOptions = {\n' +
-        'title: "Apps developed with incredible speed!"\n' +
-        '};\n' +
-        'env.createMainPage(pageOptions);\n';
+      var msg = 'A little configuration needs to be done before hpm can be used:' +
+        '\nvar config = {' +
+        '\n\turl: "http://odatadev.gizur.com/", ' +
+        '\n\temail: "joe@example.com",' +
+        '\n\taccountID: "a123456789",' +
+        '\n\tpassword: "secret"' +
+        '\n};' +
+        '\nvar db = new ydn.db.Storage("config", {stores: [{ name: "backend", autoIncrement: false }]});' +
+        '\ndb.put("backend", config, "config");';
 
       info(msg);
+    } else if (topic === 'register_account') {
+      return hpm.help("config")
     } else if (topic === 'hello') {
+      hpm.help("work");
+      hpm.help("create");
+      this.help("load");
+    } else if (topic === 'hello.old') {
       var msg = 'This is the traditional hello world example. Copy and past ' +
         'this text to create the app.' +
         '\n\nvar html = "<htlm><body><h1>Hello World</h1></body></html>";' +
