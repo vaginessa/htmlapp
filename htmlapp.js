@@ -509,15 +509,15 @@
 
     if (!topic) {
       var msg = '' +
-        '-- Overview of Htmlapp --' +
-        '\n* Htmlapp.help("config") - customize the Htmlapp configuration' +
-        '\n* Htmlapp.help("register_account") - create an account and configure for Htmlapp' +
-        '\n* Htmlapp.help("hello") - show hello world example' +
-        '\n* Htmlapp.help("load") - load a new webapp in the browser window' +
-        '\n* Htmlapp.help("unload") - remove a webapp from the borwser window' +
-        '\n* Htmlapp.help("get") - get the contents of a file' +
-        '\n* Htmlapp.help("put") - save new content into a file' +
-        '\n* Htmlapp.help("misc") - Miscellaneous';
+        '-- Overview of Htmlapp --'
+        + '\n* Htmlapp.help("config") - customize the Htmlapp configuration'
+        + '\n* Htmlapp.help("register_account") - create an account and configure for Htmlapp'
+        + '\n* Htmlapp.help("hello") - show hello world example'
+        + '\n* Htmlapp.help("load") - load a new webapp in the browser window'
+        + '\n* Htmlapp.help("unload") - remove a webapp from the borwser window'
+//        + '\n* Htmlapp.help("get") - get the contents of a file'
+//        + '\n* Htmlapp.help("put") - save new content into a file'
+        + '\n* Htmlapp.help("misc") - Miscellaneous';
 
       info(msg);
       return;
@@ -531,11 +531,13 @@
         '\nvar config = {' +
         '\n\turl: "http://odatadev.gizur.com/", ' +
         '\n\temail: "joe@example.com",' +
-        '\n\taccountID: "a123456789",' +
+        '\n\taccountId: "a123456789",' +
         '\n\tpassword: "secret"' +
         '\n};' +
         '\nvar db = new ydn.db.Storage("config", {stores: [{ name: "backend", autoIncrement: false }]});' +
-        '\ndb.put("backend", config, "config");';
+        '\ndb.put("backend", config, "config");' +
+        '\n\nshow the configuration like this:' +
+        '\ndb.get("backend","config").then(console.log.bind(console));';
 
       info(msg);
     } else if (topic === 'register_account') {
