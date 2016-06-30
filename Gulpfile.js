@@ -1,7 +1,7 @@
 var gulp = require('gulp');
-var concat = require('gulp-concat');  
-var rename = require('gulp-rename');  
-var uglify = require('gulp-uglify');  
+var concat = require('gulp-concat');
+var rename = require('gulp-rename');
+var uglify = require('gulp-uglify');
 
 //script paths
 var files = ["./bower_components/ydn.db/jsc/ydn.db-dev.js",
@@ -9,10 +9,15 @@ var files = ["./bower_components/ydn.db/jsc/ydn.db-dev.js",
                "./bower_components/lodash/dist/lodash.min.js",
                "./bower_components/promise-flow/promise-flow.js",
                "./bower_components/hpm/hpm.js",
-               "./bower_components/htmlapp/htmlapp.js"],  
+               "./htmlapp.js"],
     dist = 'dist';
 
-gulp.task('default', function() {  
+gulp.task('copy-maps', function () {
+  return gulp.src('./bower_components/ydn.db/jsc/ydn.db-dev.js.map')
+    .pipe(gulp.dest(dist));
+});
+
+gulp.task('build', function() {
     return gulp.src(files)
         .pipe(concat('htmlapp.js'))
         .pipe(gulp.dest(dist))
@@ -21,3 +26,4 @@ gulp.task('default', function() {
         .pipe(gulp.dest(dist));
 });
 
+gulp.task('default', ['copy-maps', 'build']);
