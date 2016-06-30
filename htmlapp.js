@@ -541,7 +541,7 @@
 
       info(msg);
     } else if (topic === 'register_account') {
-      return hpm.help("config")
+      return hpm.help("register_account")
     } else if (topic === 'hello') {
       hpm.help("work");
       hpm.help("create");
