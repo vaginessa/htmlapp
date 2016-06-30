@@ -529,7 +529,7 @@
     if (topic === 'config') {
       var msg = 'A little configuration needs to be done before hpm can be used:' +
         '\nvar config = {' +
-        '\n\turl: "http://odatadev.gizur.com/", ' +
+        '\n\turl: "http://odatadev.gizur.com", ' +
         '\n\temail: "joe@example.com",' +
         '\n\taccountId: "a123456789",' +
         '\n\tpassword: "secret"' +
