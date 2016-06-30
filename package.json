@@ -8,8 +8,33 @@
   "scripts": {
     "clean": "rm -rf docco; rm -rf build",
     "clean-all": "rm -rf docco; rm -rf www; rm -rf node_modules; rm -rf bower_components; rm -rf platforms; rm -rf plugins",
-    "docco": "./node_modules/.bin/docco -o docco ./*.js ./test/*.js",
-    "style": "./node_modules/.bin/jscs ./*.js  ./test/*.js",
+    "docco": "docco -o docco ./*.js ./test/*.js",
+    "style": "jscs ./*.js  ./test/*.js",
     "init": "bower install"
+  },
+  "description": "`Htmlapp` makes it easy to develop web apps from **within** a web browser. The apps target both desktop and mobile browsers.",
+  "version": "0.0.0",
+  "main": "htmlapp.js",
+  "directories": {
+    "test": "test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gizur/htmlapp.git"
+  },
+  "keywords": [
+    "htmlapp.io"
+  ],
+  "author": "Jonas Colmsjö",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/gizur/htmlapp/issues"
+  },
+  "homepage": "https://github.com/gizur/htmlapp#readme",
+  "dependencies": {
+    "gulp": "^3.9.1",
+    "gulp-concat": "^2.6.0",
+    "gulp-rename": "^1.2.2",
+    "gulp-uglify": "^1.5.4"
   }
 }
