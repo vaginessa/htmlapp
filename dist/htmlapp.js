@@ -2895,6 +2895,7 @@ window.flow = function () {
   // =======
 
   ODS = window['odsync'];
+  R = window['remote'];
 
   // private vars
   // ===========
@@ -3015,6 +3016,21 @@ window.flow = function () {
 
         // TODO: odapi expects the URL in options to end with a / while hpm does not
         od.fetch('/'+accountId, bucket+'$'+filename).then(function(res){
+          db.put(workStore, {v: res.data}, filename);
+        });
+
+      });
+  };
+
+  hpm.fetchAny = function (url, workStore) {
+
+    if (!workStore) workStore = "work";
+
+    return hpm.getDb()
+      .then(function (res) {
+        var db = res.db;
+
+        R.xhr(url, 'GET').then(function(res){
           db.put(workStore, {v: res.data}, filename);
         });
 
@@ -3690,7 +3706,7 @@ window.flow = function () {
     if (topic === 'config') {
       var msg = 'A little configuration needs to be done before hpm can be used:' +
         '\nvar config = {' +
-        '\n\turl: "http://odatadev.gizur.com/", ' +
+        '\n\turl: "http://odatadev.gizur.com", ' +
         '\n\temail: "joe@example.com",' +
         '\n\taccountId: "a123456789",' +
         '\n\tpassword: "secret"' +

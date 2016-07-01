@@ -46,6 +46,10 @@ env.unload('about');
 env.get('about.html').then(console.log.bind(console));
 ```
 
+## Development
+
+Run `gulp` to build the version that is concatenated and minified (in the `dist` folder).
+
 ## Support
 
 Create a [github issue](https://github.com/gizur/htmlapp/issues/new) if you
