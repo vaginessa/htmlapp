@@ -309,7 +309,7 @@
         self.db.get('buckets', 'b_' + appName).then(function(data){
 
           // check mandatory input
-          if (!data || !data.packageDef || !data.packageDef.name) {
+          if (!data || !data.packageDef || !data.packageDef.name) {
             reject('ERROR: app name must me specified!');
           }
 
