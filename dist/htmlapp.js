@@ -261,7 +261,7 @@
   // ========
 
   var log = console.log.bind(console);
-  var info = console.info.bind(console, 'INFO');
+  var info = console.info.bind(console);
   var debug = console.debug.bind(console, 'DEBUG');
   var error = console.error.bind(console, 'ERROR');
 
@@ -414,10 +414,11 @@
       this.credentials);
   };
 
-  // curl -X POST -H "user:3ea8f06baf64" -H "password:xxx" -d '{"accountId":"3ea8f06baf64"}' http://[IP]:[PORT]/3ea8f06baf64/s/delete_account
-  Odata.prototype.deleteAccount = function (accountId) {
+  // curl -X POST -H "user:3ea8f06baf64" -H "password:xxx" -d '{"accountId":"3ea8f06baf64","email":"joe@example.com"}' http://[IP]:[PORT]/3ea8f06baf64/s/delete_account
+  Odata.prototype.deleteAccount = function (accountId, email) {
     var data = {
-      accountId: accountId
+      accountId: accountId,
+      email: email
     };
     return remote.xhrJSON(this.url + accountId + '/s/delete_account', 'POST', data,
       this.credentials);
@@ -2916,7 +2917,7 @@ window.flow = function () {
     });
 
     return db.get('backend', 'config').then(function (cfg) {
-      if (!cfg || !cfg.url || !cfg.email ||  !cfg.accountId ||  !cfg.password)
+      if (!cfg || !cfg.url || !cfg.email || !cfg.accountId || !cfg.password)
         throw 'ERROR; url, email, accoundId and password must be configured, ' +
         'see hpm.help("config")';
       return cfg;
@@ -3022,15 +3023,16 @@ window.flow = function () {
       });
   };
 
-  hpm.fetchAny = function (url, workStore) {
+  hpm.fetchAny = function (url, workStore, method, data, headers, mimeType, user, password) {
 
-    if (!workStore) workStore = "work";
+    workStore = workStore || "work";
+    method = method || "GET";
 
     return hpm.getDb()
       .then(function (res) {
         var db = res.db;
 
-        R.xhr(url, 'GET').then(function(res){
+        R.xhr(url, method, data, headers, mimeType, user, password).then(function(res){
           db.put(workStore, {v: res.data}, filename);
         });
 
@@ -3068,6 +3070,7 @@ window.flow = function () {
 //      +  '\n* hpm.sync() - uppdat registry med public packages, varna om name är upptaget'
 //      +  '\n* hpm.register(name) - spara rad i b_packages: <account_id>, app id'
         + '\n* hpm.fetch(accountId, bucket, filename, [work_store]) - fetch file from the repository to the local database.'
+        + '\n* hpm.fetchAny(url, [workStore, method, data, headers, mimeType, user, password]) - fetch file from any URL to the local database.'
 //        + '\n* hpm.store(account_id, filename, [work_store]) - store file to the repository from the local database.'
 // Fetch and then create        + '\n* hpm.install(name, version) - install app from the repository in the local database.'
 //        + '\n* hpm.search(keywords) - lista packages som matchar, registry endast remote, ej lokalt?'
