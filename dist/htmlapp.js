@@ -3016,8 +3016,8 @@ window.flow = function () {
         var db = res.db;
 
         // TODO: odapi expects the URL in options to end with a / while hpm does not
-        od.fetch('/'+accountId, bucket+'$'+filename).then(function(res){
-          db.put(workStore, {v: res.data}, filename);
+        return od.fetch('/'+accountId, bucket+'$'+filename).then(function(res){
+          return db.put(workStore, {v: res.data}, filename);
         });
 
       });
@@ -3032,8 +3032,8 @@ window.flow = function () {
       .then(function (res) {
         var db = res.db;
 
-        R.xhr(url, method, data, headers, mimeType, user, password).then(function(res){
-          db.put(workStore, {v: res.data}, filename);
+        return R.xhr(url, method, data, headers, mimeType, user, password).then(function(res){
+          return db.put(workStore, {v: res.data}, filename);
         });
 
       });
