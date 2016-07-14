@@ -2908,7 +2908,9 @@ window.flow = function () {
   var hpm = {};
 
   // NOTE: Should create a proper class, perhaps as a singleton???
-  hpm.getConfig = function () {
+  hpm.getConfig = function (config) {
+    config = config || "config";
+
     var db = new ydn.db.Storage('config', {
       stores: [{
         name: 'backend',
@@ -2916,20 +2918,20 @@ window.flow = function () {
       }]
     });
 
-    return db.get('backend', 'config').then(function (cfg) {
+    return db.get('backend', config).then(function (cfg) {
       if (!cfg || !cfg.url || !cfg.email || !cfg.accountId || !cfg.password)
-        throw 'ERROR; url, email, accoundId and password must be configured, ' +
-        'see hpm.help("config")';
+        throw 'ERROR: url, email, accoundId and password must be configured to use hpm, ' +
+        'see hpm.help("register_account")';
       return cfg;
     });
   };
 
 
-  hpm.getDb = function (workStore) {
+  hpm.getDb = function (config, workStore) {
 
-    if (!workStore) workStore = "work";
+    workStore = workStore || "work";
 
-    return hpm.getConfig()
+    return hpm.getConfig(config)
       .then(function (cfg) {
 
         var db = new ydn.db.Storage(cfg.accountId, {
@@ -2959,18 +2961,13 @@ window.flow = function () {
   // create a packege locally in the buckets store using html/css/js
   // from the work store. packageDef is a json with `name`, `description`
   // and `version`
-  hpm.create = function (packageDef, html, css, js, workStore) {
+  hpm.create = function (packageDef, html, css, js, workStore, config) {
     var db;
 
     if (!packageDef)
       throw "ERROR: packageDef must be specified!";
 
-
-    if (!workStore) workStore = "work";
-
-    var db;
-
-    return hpm.getDb(workStore)
+    return hpm.getDb(config, workStore)
       .then(function (d) {
 
         db = d.db;
@@ -3005,11 +3002,9 @@ window.flow = function () {
   // examples: a123456789/b_helloapp$hello.html$0.0.1
   //           a123456789/b_helloapp$hello.css$0.0.1
   //           a123456789/b_helloapp$hello.js$0.0.1
-  hpm.fetch = function (accountId, bucket, filename, workStore) {
+  hpm.fetch = function (accountId, bucket, filename, workStore, config) {
 
-    if (!workStore) workStore = "work";
-
-    return hpm.getDb()
+    return hpm.getDb(config, workStore)
       .then(function (res) {
 
         var od = new Odata(res.cfg);
@@ -3023,12 +3018,15 @@ window.flow = function () {
       });
   };
 
-  hpm.fetchAny = function (url, workStore, method, data, headers, mimeType, user, password) {
+  hpm.fetchAny = function (url, filename, workStore, config, method, data, headers, mimeType, user, password) {
+
+    if (!url || !filename)
+      throw "ERROR: url and filename must be specified!";
 
     workStore = workStore || "work";
     method = method || "GET";
 
-    return hpm.getDb()
+    return hpm.getDb(config, workStore)
       .then(function (res) {
         var db = res.db;
 
@@ -3039,9 +3037,9 @@ window.flow = function () {
       });
   };
 
-  hpm.register = function (package) {
+  hpm.register = function (package, workStore, config) {
 
-    return hpm.getDb()
+    return hpm.getDb(config, workStore)
       .then(function (d) {
 
         return d.db.put("packages", {
@@ -3050,6 +3048,27 @@ window.flow = function () {
           },
           package);
       });
+  };
+
+  hpm.put = function(filename, data, config, workStore) {
+    workStore = workStore || "work";
+    return hpm.getDb(config, workStore)
+      .then(function (res) {
+        var db = res.db;
+        return db.put(workStore, {v: data}, filename);
+      });
+  };
+
+  hpm.get = function(filename, config, workStore) {
+    workStore = workStore || "work";
+    return hpm.getDb(config, workStore)
+      .then(function (res) {
+        var db = res.db;
+        return db.get(workStore, filename);
+      })
+      .then(function(res){
+        return res.v;
+      })
   };
 
   // Command line help, static functions on the App object
@@ -3069,8 +3088,10 @@ window.flow = function () {
         + '\n\n* hpm.create(package_def_file, html_file, css_file, js_file, [work_store]) - create new package or update existing package.'
 //      +  '\n* hpm.sync() - uppdat registry med public packages, varna om name är upptaget'
 //      +  '\n* hpm.register(name) - spara rad i b_packages: <account_id>, app id'
-        + '\n* hpm.fetch(accountId, bucket, filename, [work_store]) - fetch file from the repository to the local database.'
-        + '\n* hpm.fetchAny(url, [workStore, method, data, headers, mimeType, user, password]) - fetch file from any URL to the local database.'
+        + '\n* hpm.fetch(accountId, bucket, filename, [work_store, config]) - fetch file from the repository to the local database.'
+        + '\n* hpm.fetchAny(url, filename, [workStore, config, method, data, headers, mimeType, user, password]) - fetch file from any URL to the local database.'
+        + '\n\n* hpm.put(filename, data, [config, workStore]) - helper for saving a file.'
+        + '\n* hpm.get(filename, [config, workStore]) - helper for fetching a file.'
 //        + '\n* hpm.store(account_id, filename, [work_store]) - store file to the repository from the local database.'
 // Fetch and then create        + '\n* hpm.install(name, version) - install app from the repository in the local database.'
 //        + '\n* hpm.search(keywords) - lista packages som matchar, registry endast remote, ej lokalt?'
@@ -3085,7 +3106,7 @@ window.flow = function () {
       var msg = 'A little configuration needs to be done before hpm can be used:' +
         '\n// Step one' +
         '\nvar config = {' +
-        '\n\turl: "http://localhost:3000/", ' +
+        '\n\turl: "https://odatadev.gizur.com/", ' +
         '\n\temail: "joe@example.com"' +
         '\n};' +
         '\nvar db = new ydn.db.Storage("config", {stores: [{ name: "backend", autoIncrement: false }]});' +
@@ -3100,7 +3121,7 @@ window.flow = function () {
         '\n// This also works if you have a odataserver in development mode' +
         '\nOdata.resetPassword(config).then(function (res) {' +
         '\nconfig.password = res.data[0].password' +
-        '\n}, console.log.bind("ERROR", console))' +
+        '\n}, console.log.bind(console, "ERROR"))' +
         '\n//Step 3' +
         '\ndb.put("backend", config, "config");';
 
