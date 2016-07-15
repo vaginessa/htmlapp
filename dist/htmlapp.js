@@ -2907,9 +2907,18 @@ window.flow = function () {
   // constructor
   var hpm = {};
 
-  // NOTE: Should create a proper class, perhaps as a singleton???
-  hpm.getConfig = function (config) {
-    config = config || "config";
+  hpm.setConfig = function (config, account) {
+    account = account || "config";
+
+    var db = new ydn.db.Storage("config", {stores: [{ name: "backend", autoIncrement: false }]});
+    return db.put("backend", config, account).then(function(){
+      return hpm.getConfig(account);
+    });
+  }
+
+  hpm.getConfig = function (account) {
+
+    account = account || "config";
 
     var db = new ydn.db.Storage('config', {
       stores: [{
@@ -2918,7 +2927,7 @@ window.flow = function () {
       }]
     });
 
-    return db.get('backend', config).then(function (cfg) {
+    return db.get('backend', account).then(function (cfg) {
       if (!cfg || !cfg.url || !cfg.email || !cfg.accountId || !cfg.password)
         throw 'ERROR: url, email, accoundId and password must be configured to use hpm, ' +
         'see hpm.help("register_account")';
@@ -2927,11 +2936,11 @@ window.flow = function () {
   };
 
 
-  hpm.getDb = function (config, workStore) {
+  hpm.getDb = function (account, workStore) {
 
     workStore = workStore || "work";
 
-    return hpm.getConfig(config)
+    return hpm.getConfig(account)
       .then(function (cfg) {
 
         var db = new ydn.db.Storage(cfg.accountId, {
@@ -2961,13 +2970,16 @@ window.flow = function () {
   // create a packege locally in the buckets store using html/css/js
   // from the work store. packageDef is a json with `name`, `description`
   // and `version`
-  hpm.create = function (packageDef, html, css, js, workStore, config) {
+  hpm.create = function (packageDef, html, css, js, workStore, account) {
     var db;
 
     if (!packageDef)
       throw "ERROR: packageDef must be specified!";
 
-    return hpm.getDb(config, workStore)
+    account = account || "config";
+    workStore = workStore || "work";
+
+    return hpm.getDb(account, workStore)
       .then(function (d) {
 
         db = d.db;
@@ -2983,7 +2995,7 @@ window.flow = function () {
       .then(function (data) {
 
         var d = {
-          packageDef: data[0],
+          packageDef: data[0].v,
           html: data[1].v,
           css: data[2].v,
           js: data[3].v
@@ -3002,9 +3014,9 @@ window.flow = function () {
   // examples: a123456789/b_helloapp$hello.html$0.0.1
   //           a123456789/b_helloapp$hello.css$0.0.1
   //           a123456789/b_helloapp$hello.js$0.0.1
-  hpm.fetch = function (accountId, bucket, filename, workStore, config) {
+  hpm.fetch = function (accountId, bucket, filename, workStore, account) {
 
-    return hpm.getDb(config, workStore)
+    return hpm.getDb(account, workStore)
       .then(function (res) {
 
         var od = new Odata(res.cfg);
@@ -3018,7 +3030,7 @@ window.flow = function () {
       });
   };
 
-  hpm.fetchAny = function (url, filename, workStore, config, method, data, headers, mimeType, user, password) {
+  hpm.fetchAny = function (url, filename, workStore, account, method, data, headers, mimeType, user, password) {
 
     if (!url || !filename)
       throw "ERROR: url and filename must be specified!";
@@ -3026,7 +3038,7 @@ window.flow = function () {
     workStore = workStore || "work";
     method = method || "GET";
 
-    return hpm.getDb(config, workStore)
+    return hpm.getDb(account, workStore)
       .then(function (res) {
         var db = res.db;
 
@@ -3037,9 +3049,9 @@ window.flow = function () {
       });
   };
 
-  hpm.register = function (package, workStore, config) {
+  hpm.register = function (package, workStore, account) {
 
-    return hpm.getDb(config, workStore)
+    return hpm.getDb(account, workStore)
       .then(function (d) {
 
         return d.db.put("packages", {
@@ -3050,24 +3062,26 @@ window.flow = function () {
       });
   };
 
-  hpm.put = function(filename, data, config, workStore) {
+  hpm.put = function(filename, data, account, workStore) {
     workStore = workStore || "work";
-    return hpm.getDb(config, workStore)
+    return hpm.getDb(account, workStore)
       .then(function (res) {
         var db = res.db;
         return db.put(workStore, {v: data}, filename);
       });
   };
 
-  hpm.get = function(filename, config, workStore) {
+  hpm.get = function(filename, account, workStore) {
     workStore = workStore || "work";
-    return hpm.getDb(config, workStore)
+    return hpm.getDb(account, workStore)
       .then(function (res) {
         var db = res.db;
         return db.get(workStore, filename);
       })
       .then(function(res){
-        return res.v;
+        if (typeof res === 'undefined') return false;
+        res = res.v || res || false;
+        return res;
       })
   };
 
@@ -3083,15 +3097,17 @@ window.flow = function () {
       var msg =
         '-- Htmlapp package manager help --'
         + '\n\n* hpm.help("register_account") - show setup help'
+        + '\n* hpm.help("hello") - develop the sample app.'
         + '\n* hpm.help("create") - help with creating packages'
-        + '\n* hpm.help("work") - working with files'
+        + '\n\n* hpm.setConfig(options, [account]) - Setup account configuration to use when fetching files.'
+        + '\n* hpm.getConfig[account]) - Get the configuration.'
         + '\n\n* hpm.create(package_def_file, html_file, css_file, js_file, [work_store]) - create new package or update existing package.'
 //      +  '\n* hpm.sync() - uppdat registry med public packages, varna om name är upptaget'
 //      +  '\n* hpm.register(name) - spara rad i b_packages: <account_id>, app id'
-        + '\n* hpm.fetch(accountId, bucket, filename, [work_store, config]) - fetch file from the repository to the local database.'
-        + '\n* hpm.fetchAny(url, filename, [workStore, config, method, data, headers, mimeType, user, password]) - fetch file from any URL to the local database.'
-        + '\n\n* hpm.put(filename, data, [config, workStore]) - helper for saving a file.'
-        + '\n* hpm.get(filename, [config, workStore]) - helper for fetching a file.'
+        + '\n* hpm.fetch(accountId, bucket, filename, [work_store, account]) - fetch file from the repository to the local database.'
+        + '\n* hpm.fetchAny(url, filename, [workStore, account, method, data, headers, mimeType, user, password]) - fetch file from any URL to the local database.'
+        + '\n\n* hpm.put(filename, data, [account, workStore]) - helper for saving a file.'
+        + '\n* hpm.get(filename, [account, workStore]) - helper for fetching a file.'
 //        + '\n* hpm.store(account_id, filename, [work_store]) - store file to the repository from the local database.'
 // Fetch and then create        + '\n* hpm.install(name, version) - install app from the repository in the local database.'
 //        + '\n* hpm.search(keywords) - lista packages som matchar, registry endast remote, ej lokalt?'
@@ -3105,25 +3121,18 @@ window.flow = function () {
     if (topic === 'register_account') {
       var msg = 'A little configuration needs to be done before hpm can be used:' +
         '\n// Step one' +
-        '\nvar config = {' +
-        '\n\turl: "https://odatadev.gizur.com/", ' +
-        '\n\temail: "joe@example.com"' +
-        '\n};' +
-        '\nvar db = new ydn.db.Storage("config", {stores: [{ name: "backend", autoIncrement: false }]});' +
-        '\nOdata.createAccount(config).then(function (res) {' +
-        '\n    config.accountId = res.data[1].accountId;' +
-        '\n  }, function (res) {' +
-        '\n    config.accountId = res.data[1].accountId;' +
-        '\n  })' +
+        '\nvar options = {url: Odata.DEV_URL, email: "joe@example.com"};' +
+        '\nvar log = console.log.bind(console, "LOG");' +
+        '\n\nNow create an account:' +
+        '\nvar f = function(res){ log(options.accountId=res.data[1].accountId) };' +
+        '\nOdata.createAccount(options).then(f,f);' +
         '\n// Check that the accountId has been stored in config' +
         '\n// Step two' +
         '\nconfig.password = "check the mail for a password";' +
         '\n// This also works if you have a odataserver in development mode' +
-        '\nOdata.resetPassword(config).then(function (res) {' +
-        '\nconfig.password = res.data[0].password' +
-        '\n}, console.log.bind(console, "ERROR"))' +
-        '\n//Step 3' +
-        '\ndb.put("backend", config, "config");';
+        '\nOdata.resetPassword(options).then( function(res) {log(options.password = res.data[0].password);}, log);' +
+        '\n// Step 3, it is optional to specify an account name. The default is used in all hpm methods if it is left out.' +
+        '\nhpm.setConfig(options, "joe").then(log);';
 
       info(msg);
     } else if (topic === 'create') {
@@ -3147,16 +3156,28 @@ window.flow = function () {
         '\n\ndb.get("buckets","b_hello-0.0.1").then(console.log.bind(console));';
 
       info(msg);
-    } else if (topic === 'work') {
+    } else if (topic === 'hello') {
+      var msg =
+        'Simplify logging:' +
+        '\n\nvar log = console.log.bind(console, "LOG"); ' +
+        '\n\nUse this simple Hello World app to test that everything works:' +
+        '\n\nvar html = "<htlm><body><h1>Hello World</h1></body></html>"' +
+        '\nvar js = "init = function() { console.log(\'init function\');};"' +
+        '\nvar css = "body {background: rgba(234, 159, 195, 0.8);}"' +
+        '\nhpm.put("hello.html", html);' +
+        '\nhpm.put("hello.css", css);' +
+        '\nhpm.put("hello.js", js);' +
+        '\n\nCheck the results: ' +
+        '\n\nhpm.get("hello.html").then(log);';
+
+      info(msg);
+
+    } else if (topic === 'work2') {
       var msg =
         'Open a database connection that can be used for files we work on:' +
-        '\n\nvar db; ' +
-        '\nhpm.getConfig().then(function(cfg){' +
-        '\n\tdb = new ydn.db.Storage(cfg.accountId, ' +
-        '\n\t\t{stores: [{ name: "work", autoIncrement: false },' +
-        '\n\t\t{ name: "buckets", autoIncrement: false }]}' +
-        '\n\t);' +
-        '\n});' +
+        '\n\nvar cfg; ' +
+        '\nhpm.getDb().then(function(cfg_){cfg=cfg_});' +
+        '\nvar db=cfg.db; ' +
         '\n\nUse this simple Hello World app to test that everything works:' +
         '\n\nvar html = "<htlm><body><h1>Hello World</h1></body></html>"' +
         '\nvar js = "init = function() { console.log(\'init function\');};"' +
